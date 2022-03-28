@@ -1,0 +1,43 @@
+from google.colab import drive
+drive.mount('/drive')
+
+import pandas as pd
+import math
+
+dataset1=pd.read_excel('/drive/My Drive/data_dsci.xlsx')
+prob_yes=(dataset1['evade'].value_counts()['yes'])/(len(dataset1['evade']))
+prob_no=(dataset1['evade'].value_counts()['no'])/(len(dataset1['evade']))
+print(prob_yes,prob_no)
+
+from pandas.core.tools.numeric import to_numeric
+#martial status
+prob_div_yes=len(dataset1.query('evade=="yes" & martial_status=="divorced"'))
+prob_div_no=len(dataset1.query('evade=="no" & martial_status=="divorced"'))
+prob_div=max(prob_div_no,prob_div_yes)
+
+#refund
+prob_refund_yes=len(dataset1.query('evade=="yes" & refund=="yes"'))
+# refund ==yes and evade ==yes/no
+prob_refund_no=len(dataset1.query('evade=="no" & refund=="yes"'))
+prob_refund=max(prob_refund_yes,prob_refund_no)
+income=90
+# df2.groupby('ID').sum()[['condition']]
+
+#taxable income
+dataset1['taxable income']=to_numeric(dataset1['taxable income'].astype(str).str.replace('k',''))
+tax_yes=dataset1['taxable income'].where(dataset1['evade']=='yes')
+tax_no=dataset1['taxable income'].where(dataset1['evade']=='no')
+tax_yes=tax_yes.dropna()
+std_dev_yes=tax_yes.var()
+mean_yes=tax_yes.mean()
+tax_no=tax_no.dropna()
+std_dev_no=tax_no.var()
+mean_no=tax_no.mean()
+power_value_yes=((income - mean_yes)**2)/(2*std_dev_yes)
+prob_tax_yes=math.exp(-power_value_yes)*(1/math.sqrt(2*math.pi*std_dev_yes))
+power_value_no=((income - mean_no)**2)/(2*std_dev_no)
+prob_tax_no=math.exp(-power_value_no)/math.sqrt(2*math.pi*std_dev_no)
+prob_tax=max(prob_tax_yes,prob_tax_no)
+
+prob=prob_tax*prob_refund*prob_div
+print(prob)
